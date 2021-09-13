@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { userModel } = require("../../../models");
+const { connection } = require("../../../config/database");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 
@@ -23,49 +23,69 @@ router.get("/", (req, res) => {
 
 router.post("/add", async (req, res) => {
   try {
-    const user = await userModel.create(req.body);
+    const date = new Date().getTime();
 
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY);
+    const value = `insert into users (user_email,user_registered,date,user_phone) values('${req.body.email}',false,${date},${date})`;
 
-    const composeMail = {
-      from: process.env.EMAIL,
-      to: req.body.email,
-      subject: "Mail from Zocket",
-      html: `
-              <div>
-              <p><b>Hi, This is Prakash from Zocket.
-              </b>. We welcome to our platform</p>
-              <p>To register the form, click below</p>
-              <a href="https://zocket-assessment.netlify.app/verify/${token}">
-              <button  style="padding:10px 20px;background-color:blue;color:white;border:none;outline:none;border-radius:10px">
-                Click Here
-              </button>
-              </a>
-              </div>
-              `,
-    };
-
-    sender.sendMail(composeMail, (err, data) => {
+    connection.query(value, function (err, data) {
       if (err) {
-        console.log(err);
+        res.send("error" + err);
       } else {
-        console.log("mail sended successfully" + data.response);
+        const token = jwt.sign(
+          { userId: data.insertId },
+          process.env.SECRET_KEY
+        );
+        const composeMail = {
+          from: process.env.EMAIL,
+          to: req.body.email,
+          subject: "Mail from Zocket",
+          html: `
+                  <div>
+                  <p><b>Hi, This is Prakash from Zocket.
+                  </b>. We welcome to our platform</p>
+                  <p>To register the form, click below</p>
+                  <a href="localhost:3000/verify/${token}">
+                  <button  style="padding:10px 20px;background-color:blue;color:white;border:none;outline:none;border-radius:10px">
+                    Click Here
+                  </button>
+                  </a>
+                  </div>
+                  `,
+        };
+        sender.sendMail(composeMail, (err, data) => {
+          if (err) {
+            console.log(err);
+          } else {
+            console.log("mail sended successfully" + data.response);
+          }
+        });
+        res.send(data);
       }
     });
 
-    res.send(user);
+    // res.send(user);
   } catch (error) {
     res.send(error.message);
   }
 });
 
-router.get("/get", async (req, res) => {
-  const token = req.headers["authorization"];
+// router.get("/get", async (req, res) => {
+//   const token = req.headers["authorization"];
 
-  const data = await jwt.verify(token, process.env.SECRET_KEY);
-  const user = await userModel.findById({ _id: data.userId });
-  res.json(user);
-});
+//   const data = await jwt.verify(token, process.env.SECRET_KEY);
+
+//   const user = `select * from users where user_id=${data.userId}`;
+//   connection.query(
+//    user,
+//   function (err, data) {
+//     if (err) {
+//       return res.json("error" + err);
+//     } else {
+
+//       res.json(data);
+//     }})
+
+// });
 
 router.put("/update", async (req, res) => {
   try {
@@ -73,35 +93,38 @@ router.put("/update", async (req, res) => {
 
     const data = await jwt.verify(token, process.env.SECRET_KEY);
 
-    const user = await userModel.findByIdAndUpdate(
-      { _id: data.userId },
-      { name: req.body.data.name, phone: req.body.data.phone,registered:true },
-      { new: true }
-    );
-    const composeMail = {
-      from: process.env.EMAIL,
-      to: req.body.data.email,
-      subject: "Mail from Zocket",
-      html: `
-              <div>
-              <p><b>Hi,${req.body.data.name}.
-              </b>. We welcome to our platform</p>
-              <p>Thanks for registered the form</p>
-              <p>We will contact you soon.</p>
-              </div>
-              `,
-    };
+    const date = new Date().getTime();
+    const value = `update users set user_name='${req.body.data.name}',user_email='${req.body.data.email}',user_registered=true,date = ${date},user_phone='${req.body.data.phone}' where user_id=${data.userId}`;
 
-    sender.sendMail(composeMail, (err, data) => {
+    connection.query(value, function (err, data) {
       if (err) {
-        console.log(err);
+        res.send("error" + err);
       } else {
-        console.log("mail sended successfully" + data.response);
+        const composeMail = {
+          from: process.env.EMAIL,
+          to: req.body.data.email,
+          subject: "Mail from Zocket",
+          html: `
+                  <div>
+                  <p><b>Hi,${req.body.data.name}
+                  </b>. <br/>We welcome to our platform</p>
+                  <p>Thanks for registered the form</p>
+                  <p>We will contact you soon.</p>
+                  </div>
+                  `,
+        };
+
+        sender.sendMail(composeMail, (err, data) => {
+          if (err) {
+            console.log(err);
+          } else {
+            console.log("mail sended successfully" + data.response);
+          }
+        });
+
+        res.send(data);
       }
     });
-
-    res.send(user);
-    
   } catch (error) {
     res.json(error.message);
   }
