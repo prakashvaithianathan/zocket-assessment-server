@@ -44,7 +44,7 @@ router.post("/add", async (req, res) => {
                   <p><b>Hi, This is Prakash from Zocket.
                   </b>. We welcome to our platform</p>
                   <p>To register the form, click below</p>
-                  <a href="localhost:3000/verify/${token}">
+                  <a href="https://zocket-assessment.netlify.app/verify/${token}">
                   <button  style="padding:10px 20px;background-color:blue;color:white;border:none;outline:none;border-radius:10px">
                     Click Here
                   </button>
